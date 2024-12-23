@@ -106,9 +106,9 @@ const userAdd = asyncHandler(async (req, res) => {
     return res.status(403).json(new ApiError(403, "Authentication Failed!"));
 
   if (req.body.add === "student") {
-    const { name, fatherName, phoneNumber, classId } = req.body;
+    const { name, fatherName, phoneNumber, classId , newClass} = req.body;
 
-    if (!name || !fatherName || !classId)
+    if (!name || !fatherName || !classId || !newClass)
       return res.status(400).json(new ApiError(400, "Detail is Missing!"));
 
     try {
@@ -117,6 +117,7 @@ const userAdd = asyncHandler(async (req, res) => {
         fatherName,
         ...(phoneNumber && { phoneNumber }),
         class: new mongoose.Types.ObjectId(classId),
+        newClass,
       });
       return res.status(200).json(new ApiResponse(200, "Successfully Added!"));
     } catch (error) {
@@ -415,13 +416,13 @@ const timeTable = asyncHandler(async (req, res) => {
 });
 
 const transferStudents = asyncHandler(async (fromClassId, toClassId) => {
-  // Validate if the toClassId exists and is active
   const toClass = await Grade.findOne({ _id: toClassId, status: "Active" });
+  console.log("Destination class:", toClass);
   if (!toClass) {
     throw new Error("Destination class does not exist or is not active.");
   }
 
-  // Update all students from the old class to the new one
+  console.log("Query result:", toClass);
   await Student.updateMany(
     { currentClass: fromClassId },
     { $set: { currentClass: toClassId } }
@@ -431,9 +432,6 @@ const transferStudents = asyncHandler(async (fromClassId, toClassId) => {
     { classId: { $elemMatch: { grade: fromClassId } } },
     { $set: { "classId.$.grade": toClassId } }
   );
-  // Update related documents like tests, timetables, etc., if necessary
-  // ...
-
   return true;
 });
 export {

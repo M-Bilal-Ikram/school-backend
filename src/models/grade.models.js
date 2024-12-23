@@ -24,9 +24,6 @@ const gradeSchema = new Schema({
         default : "Active",
         enum : ["Active", "Inactive"]
     },
-    next_class :{
-        type : Schema.Types.Mixed,
-    }
 });
 
 gradeSchema.index({substitute : 1},{ expireAfterSeconds: 7 * 3600} )
