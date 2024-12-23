@@ -55,7 +55,6 @@ const getStudent = asyncHandler(async(req,res)=>{
             studentData = await StudentEnrollment.find({endSession : {$exists : false}},"-startSession");
         else if(classes === "" && role.includes("Teacher")){
             let grade_id = await Grade.find({incharge : id})
-            console.log("Grade:",grade_id)
             studentData = await StudentEnrollment.find({endSession : {$exists : false}, class : {$eq : grade_id[0]._id}},"-startSession");
         }
         else{

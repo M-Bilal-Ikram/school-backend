@@ -415,25 +415,34 @@ const timeTable = asyncHandler(async (req, res) => {
   }
 });
 
-const transferStudents = asyncHandler(async (fromClassId, toClassId) => {
-  const toClass = await Grade.findOne({ _id: toClassId, status: "Active" });
-  console.log("Destination class:", toClass);
-  if (!toClass) {
-    throw new Error("Destination class does not exist or is not active.");
-  }
+const transferStudents = asyncHandler(async (req,res) => {
+try {
+    const {toClassId, studentsId } = req.body;
 
-  console.log("Query result:", toClass);
-  await Student.updateMany(
-    { currentClass: fromClassId },
-    { $set: { currentClass: toClassId } }
-  );
+    if (!toClassId || !studentsId) {
+      throw new Error("Missing required fields.");
+    }
+    
+    const toClass = await Grade.findOne({ _id: toClassId, status: "Active" });
 
-  await TimeTable.updateMany(
-    { classId: { $elemMatch: { grade: fromClassId } } },
-    { $set: { "classId.$.grade": toClassId } }
-  );
-  return true;
+    if (!toClass) {
+      throw new Error("Destination class does not exist or is not active.");
+    }
+    
+    await Student.updateMany(
+      { studentId : {$in : studentsId} },
+      { $set: { currentClass: toClassId } }
+    );
+    return res
+      .status(200)
+      .json(new ApiError(200, "Student Transferred Successfully!"));
+} catch (error) {
+  return res
+      .status(500)
+      .json(new ApiError(500, "Something Went wrong!", error));
+}
 });
+
 export {
   loginController,
   userDelete,
