@@ -69,8 +69,15 @@ const getStudent = asyncHandler(async(req,res)=>{
             studentData = await StudentEnrollment.find({endSession : {$exists : false}, class : {$eq : grade_id[0]._id}},"-startSession");
         }
         else{
-            studentData = await StudentEnrollment.find({endSession : {$exists : false}, class : {$eq : classes}},"-startSession");
-        }
+            studentData = await StudentEnrollment.find({
+                endSession: { $exists: false },
+                $expr: {
+                  $eq: [
+                    { $arrayElemAt: ["$class", 0] },
+                    classes
+                  ]
+                }
+              }, "-startSession");        }
         
         return res.status(200).json(
             new ApiResponse(200,"Successfully Retrived!",studentData)
