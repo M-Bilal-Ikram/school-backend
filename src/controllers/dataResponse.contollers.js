@@ -119,7 +119,7 @@ const getTodayAttendence = asyncHandler( async(req,res)=>{
             let grade = classes === "" ? await Grade.find({incharge : id}) : classes;
             if(grade.length !== 0){
                 grade = classes === "" ? grade[0]._id : grade;
-                console.log("Grade:",grade)
+               
                 AttendData = await Attendence.aggregate([
                     {
                         $match: {
@@ -160,6 +160,7 @@ const getTodayAttendence = asyncHandler( async(req,res)=>{
                 ]);
             }
             }
+        console.log(AttendData)
         return res.status(200).json(
             new ApiResponse(200,"Successfully Retrived!",AttendData)
     )
