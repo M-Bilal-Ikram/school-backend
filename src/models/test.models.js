@@ -22,6 +22,14 @@ const testSchema = new Schema({
         type : Schema.Types.ObjectId,
         ref: "Grade",
         required : true
+    },
+    status :{
+        type : String,
+        default: "Not Marked",
+    },
+    testDate: {
+        type : Date,
+        default : Date.now
     }
 })
 

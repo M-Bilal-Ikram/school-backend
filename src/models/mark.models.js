@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
-import { Test } from "./test.models";
-import { ApiError } from "../utils/ApiError"
+import { Test } from "./test.models.js";
+import { ApiError } from "../utils/ApiError.js"
 
 const markSchema = new Schema ({
     testId : {
@@ -28,4 +28,4 @@ markSchema.pre("save", async function (next){
 
 })
 
-export const marks = mongoose.model("Mark", markSchema)
+export const Marks = mongoose.model("Mark", markSchema)

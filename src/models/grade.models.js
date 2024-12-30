@@ -12,12 +12,11 @@ const gradeSchema = new Schema({
     incharge : {
         type : Schema.Types.ObjectId,
         ref : "Staff",
-        required : true
+        required: true
     },
     substitute : {
        type : Schema.Types.ObjectId,
-        ref : "Staff",
-        expires: () => Date.now() + 7 * 3600000
+        ref : "Staff"
     },
     status :{
         type : String,
@@ -26,7 +25,6 @@ const gradeSchema = new Schema({
     },
 });
 
-gradeSchema.index({substitute : 1},{ expireAfterSeconds: 7 * 3600} )
 
 gradeSchema.pre('findOneAndUpdate', async function(next) {
     const grade = await this.model.findOne(this.getQuery());

@@ -7,22 +7,22 @@ import { Test } from "../models/test.models.js";
 import { Grade } from "../models/grade.models.js";
 import { Attendence } from "../models/attendence.models.js";
 import { TimeTable } from "../models/timetable.models.js";
-import { Student } from "../models/studetnt.models.js";
 import mongoose from "mongoose";
+import { Marks } from "../models/mark.models.js";
+import { AcademicSession } from "../models/academicSession.models.js";
 
 const loginController = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  console.log(email, password);
   if (!(email || password))
     return res
       .status(400)
       .json(new ApiError(400, "Email or Password is Required!"));
-  console.log(email, password);
+
   const user = await Staff.findOne({ email: email });
-  console.log(user);
+ 
   if (!user) return res.status(400).json(new ApiError(400, "User Not Found!"));
   const IsCorrect = await user.isPasswordCorrect(password);
-  console.log(IsCorrect);
+
   if (!IsCorrect)
     return res.status(401).json(new ApiError(401, "Enter Correct Password!"));
 
@@ -42,11 +42,13 @@ const loginController = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: "None",
+    maxAge: 30 * 24 * 60 * 60 * 1000
   });
   res.cookie("access_Token", accessToken, {
     httpOnly: true,
     secure: true,
     sameSite: "None",
+    maxAge : 24 * 60 * 60 * 1000
   });
 
   return res.status(200).json(
@@ -59,8 +61,6 @@ const loginController = asyncHandler(async (req, res) => {
 
 const userDelete = asyncHandler(async (req, res) => {
   const { id } = req.body;
-  console.log(req.role);
-  console.log(id);
   
 
   if (!req.role.includes("Admin"))
@@ -71,13 +71,12 @@ const userDelete = asyncHandler(async (req, res) => {
 
     try {
       await StudentEnrollment.deleteStudent(id);
-      console.log(id);
+     
       
       return res
         .status(200)
         .json(new ApiResponse(200, "Successfully Deleted!"));
     } catch (error) {
-      // console.log(error)
       return res
         .status(500)
         .json(new ApiError(500, "Something Went wrong!", error));
@@ -106,9 +105,9 @@ const userAdd = asyncHandler(async (req, res) => {
     return res.status(403).json(new ApiError(403, "Authentication Failed!"));
 
   if (req.body.add === "student") {
-    const { name, fatherName, phoneNumber, classId , newClass} = req.body;
+    const { name, fatherName, phoneNumber, classId } = req.body;
 
-    if (!name || !fatherName || !classId || !newClass)
+    if (!name || !fatherName || !classId)
       return res.status(400).json(new ApiError(400, "Detail is Missing!"));
 
     try {
@@ -116,8 +115,7 @@ const userAdd = asyncHandler(async (req, res) => {
         name,
         fatherName,
         ...(phoneNumber && { phoneNumber }),
-        class: new mongoose.Types.ObjectId(classId),
-        newClass,
+        class: new mongoose.Types.ObjectId(classId)
       });
       return res.status(200).json(new ApiResponse(200, "Successfully Added!"));
     } catch (error) {
@@ -134,9 +132,7 @@ const userAdd = asyncHandler(async (req, res) => {
       await Staff.create({ name, role, email, password });
       
       return res.status(200).json(new ApiResponse(200, "Successfully Added!"));
-    } catch (error) {
-      console.log(error);
-      
+    } catch (error) {      
       return res
         .status(500)
         .json(new ApiError(500, "Something Went wrong!", error));
@@ -177,8 +173,6 @@ const createTest = asyncHandler(async (req, res) => {
     });
     return res.status(200).json(new ApiResponse(200, "Successfully Added!"));
   } catch (error) {
-    console.log(error);
-
     return res
       .status(500)
       .json(new ApiError(500, "Something Went wrong!", error));
@@ -201,9 +195,7 @@ const substitute = asyncHandler(async (req, res) => {
     return res
       .status(200)
       .json(new ApiResponse(200, "Successfully Substitute!"));
-  } catch (error) {
-    console.log(error);
-    
+  } catch (error) {  
     return res
       .status(500)
       .json(new ApiError(500, "Something Went wrong!", error));
@@ -216,7 +208,7 @@ const classAdd = asyncHandler(async (req, res) => {
   if (!role.includes("Admin"))
     return res.status(403).json(new ApiError(403, "Authentication Failed!"));
 
-  const { label, inchargeId, level, next_class } = req.body;
+  const { label, inchargeId, level } = req.body;
 
   if (!label || !level || !inchargeId)
     return res.status(400).json(new ApiError(400, "Detail is Missing!"));
@@ -225,28 +217,104 @@ const classAdd = asyncHandler(async (req, res) => {
     incharge : inchargeId, 
     level
   }
-  if (next_class) gradeData.next_class = next_class
+  
 
   try {
+    const existingGrade = await Grade.findOne({ incharge: gradeData.incharge });
+    if (existingGrade) {
+        return res.status(400).json(
+            new ApiError(400, "Teacher is already incharge of another class")
+        );
+    }
+    gradeData.level = Number(gradeData.level);
+    
     await Grade.create(gradeData);
-    return res.status(200).json(new ApiResponse(200, "Successfully Added!"));
-  } catch (error) {
-    return res
-      .status(500)
-      .json(new ApiError(500, "Something Went wrong!", error));
-  }
+    
+    return res.status(200).json(
+        new ApiResponse(200, "Successfully Added!")
+    );
+  } 
+  catch (error) {
+    
+  return res
+  .status(500)
+  .json(new ApiError(500, "Something Went wrong!", error));
+}
 });
 
 const newSession = asyncHandler(async (req, res) => {
   if (!req.role.includes("Admin"))
     return res.status(403).json(new ApiError(403, "Authentication Failed!"));
 
-  const { label, year } = req.body;
-  if (!label || !year)
-    return res.status(400).json(new ApiError(400, "Detail is Missing!"));
+  const { label, year, password } = req.body;
+  if (!label || !year || !password)
+    return res.status(400).json(new ApiError(400, "Password, Year and Label is requierd!"));
 
   try {
-    await Grade.create({ label, year, status: "Current" });
+    const id = req.id
+    const user = await Staff.findById(id);
+    const IsCorrect = await user.isPasswordCorrect(password);
+    
+    if (!IsCorrect)
+      return res.status(401).json(new ApiError(401, "Enter Correct Password!"));
+
+  } catch (error) {
+    return res
+      .status(403)
+      .json(new ApiError(403, "Password Confirmation Unsuccessful!", error));
+  }
+  try {
+    await AcademicSession.updateMany({status:"Current"},{$set : {status:"Previous"}})
+    const session = await AcademicSession.create({label,year,status:"Current"})
+    const sessionId = session._id
+    if(!session._id){
+      return res.status(500).json(
+        new ApiError(500,"Session Creation unsuccessful"))
+    }
+    await Grade.aggregate([
+      {
+        $match: { level: 10 }
+      },
+      {
+        $lookup: {
+          from: "studentenrollments",
+          localField: "_id",
+          foreignField: "class",
+          as: "Student"
+        }
+      },
+      {
+        $unwind: "$Student"
+      },
+      // Replace the root with the student sub-document
+      {
+        $replaceRoot: {
+          newRoot: "$Student"
+        }
+      },
+      // Update fields on the student enrollment doc
+      {
+        $addFields: {
+          class: {
+            $concatArrays: [
+              ["Graduated"],
+              "$class"
+            ]
+          },
+          endSession: sessionId
+        }
+      },
+      // Merge back into the studentenrollments collection
+      {
+        $merge: {
+          into: "studentenrollments",
+          on: "_id",
+          whenMatched: "merge",
+          whenNotMatched: "discard"
+        }
+      }
+    ])
+
     return res.status(200).json(new ApiResponse(200, "Successfully Started!"));
   } catch (error) {
     return res
@@ -259,16 +327,15 @@ const markAttendence = asyncHandler(async (req, res) => {
   const date = new Date().toISOString().split('T')[0]
   let data = {}
   if (req.role.includes("Admin")) {
-    const { teacher, attendence } = req.body;
+    const { teacher, attendence} = req.body;
     if (!teacher || teacher.length === 0) {
       return res.status(400).json(new ApiError(400, "Data is Missing!"));
     }
 
     // Update Attendence
-    if (attendence && attendence.length !== 0) {
+    if (attendence && attendence.length !== 0) { 
       const newAttendence = teacher
         .filter((person) => {
-          console.log(person);
           return (
             person.status === "Present" &&
             attendence.some((att) => att.attendeId === person.attendeId)
@@ -277,7 +344,6 @@ const markAttendence = asyncHandler(async (req, res) => {
         .map((person) => person.attendeId);
 
       if (newAttendence.length !== 0) {
-        console.log(newAttendence.length);
         try {
           await Attendence.deleteMany({
             attendeId: { $in: newAttendence },
@@ -297,7 +363,7 @@ const markAttendence = asyncHandler(async (req, res) => {
       let newTeacher = teacher
         .filter(
           (person) =>
-            person.status === "Absent" && !attendence.includes(person.attendeId)
+            person.status === "Absent" && !attendence.some(att => att.attendeId === person.attendeId)
         )
         .map((person) => {
           return {
@@ -325,9 +391,7 @@ const markAttendence = asyncHandler(async (req, res) => {
         .json(new ApiError(500, "Marking Attendence Failed", error));
     }
   }
-  //^ Ready To Test
   else if (req.role.includes("Teacher")) {
-    console.log("route Hit!!!!")
 
     const { student, attendence } = req.body;
 
@@ -346,7 +410,6 @@ const markAttendence = asyncHandler(async (req, res) => {
         .map((person) => person.attendeId);
 
       if (newAttendence.length !== 0) {
-        console.log(newAttendence.length);
         try {
           await Attendence.deleteMany({
             attendeId: { $in: newAttendence },
@@ -365,7 +428,7 @@ const markAttendence = asyncHandler(async (req, res) => {
       let newStudent = student
         .filter(
           (person) =>
-            person.status === "Absent" && !attendence.includes(person.attendeId)
+            person.status === "Absent" && !attendence.some(att => att.attendeId === person.attendeId)
         )
         .map((person) => {
           return {
@@ -429,9 +492,9 @@ try {
       throw new Error("Destination class does not exist or is not active.");
     }
     
-    await Student.updateMany(
-      { studentId : {$in : studentsId} },
-      { $set: { currentClass: toClassId } }
+    await StudentEnrollment.updateMany(
+      { _id : {$in : studentsId} },
+      { $set: { class: toClassId } }
     );
     return res
       .status(200)
@@ -443,6 +506,150 @@ try {
 }
 });
 
+const markTest = asyncHandler(async(req,res)=>{
+  const role = req.role
+  if(role.includes("Teacher")){
+  const {data} = req.body
+
+
+    if(data.length === 0){
+      return res.status(400).json(
+        new ApiError(400,"Data is missing!"))
+    }
+    try {
+        await Marks.insertMany(data)
+        await Test.findByIdAndUpdate(data[0].testId, { status: "Marked" });
+        return res.status(200).json(
+          new ApiResponse(200,"Successfully Marked!")
+  )
+    } catch (error) {
+      return res.status(500).json(
+        new ApiError(500,"Something Went wrong!",error))
+    }
+  }
+  else{
+    return res.status(403).json(
+      new ApiError(403,"You are not Allowed to mark test!")
+)
+  }
+})
+
+const changeIncharge = asyncHandler(async(req,res)=>{
+  const role = req.role
+  if(!role.includes("Admin")){
+    return res.status(403).json(
+      new ApiError(403,"You are not Authenticated!"))
+  }
+  const {incharge,tograde} = req.body
+
+  if(!incharge || !tograde){
+    return res.status(401).json(
+      new ApiError(401,"Data is Missing!"))
+  }
+
+  try {
+
+    await Grade.findOneAndUpdate({_id: tograde},{incharge: incharge})
+    return res.status(200).json(
+      new ApiError(200,"Incharge Changed Successfully!"))
+
+  } catch (error) {
+    return res.status(500).json(
+      new ApiError(500,"Tranfer of Incharge Unsuccessful!", error))
+  }
+
+})
+
+const deleteClass = asyncHandler(async(req,res)=>{ 
+  const role = req.role
+  if(!role.includes("Admin")){
+    return res.status(403).json(
+      new ApiError(403,"You are not Authenticated!"))
+  }
+
+  try {
+      const {gradeid} = req.body
+
+      if (!gradeid) {
+        return res.status(400).json(
+          new ApiError(400, "Grade ID is required!")
+        );
+      }
+
+      const students = await StudentEnrollment.find({
+        class: gradeid
+      });
+      
+      if(students.length !== 0){
+        return res.status(400).json(
+          new ApiError(400,"Remove or Transfer student before removing class!"))
+      }
+
+      await Grade.findByIdAndUpdate(gradeid,{status: "Inactive",incharge: null});
+      return res.status(200).json(
+        new ApiResponse(200,"Class deactivated successfully!"))
+
+  } catch (error) {
+    return res.status(500).json(
+      new ApiError(500,"Class deactivated unsuccessfully", error))
+  }
+})
+
+const reactivateClass = asyncHandler(async(req,res)=>{
+  if(!req.role.includes("Admin")){
+    return res.status(403).json(
+      new ApiError(403,"You are not Authenticated!"))
+  }
+  const {gradeid,inchargeId} = req.body
+
+  const inchargeValue = Array.isArray(inchargeId) ? 
+  inchargeId[0]?.id : 
+  typeof inchargeId === 'object' ? 
+  inchargeId.id : 
+  inchargeId;
+
+  const gradeIdValue = Array.isArray(gradeid) ? 
+  gradeid[0]?.id : 
+  typeof gradeid === 'object' ? 
+  gradeid.id : 
+  gradeid;
+  
+  if (!gradeIdValue || !inchargeValue) {
+    return res.status(400).json(
+      new ApiError(400, "Grade ID and Incharge ID is required!")
+    );
+  }
+  try {
+    await Grade.findByIdAndUpdate(gradeIdValue,{status: "Active",incharge: inchargeValue});
+    return res.status(200).json(
+      new ApiResponse(200,"Class deactivated successfully!"))
+  } catch (error) {
+    return res.status(500).json(
+      new ApiError(500,"Class deactivated unsuccessfully", error))
+  }
+})
+
+const deleteTest = asyncHandler(async(req,res)=>{
+  if(!req.role.includes("Admin")){
+    return res.status(403).json(
+      new ApiError(403,"You are not Authenticated!"))
+  }
+  const {test_Ids}= req.body
+
+  if(!test_Ids || test_Ids.length === 0){
+    return res.status(400).json(
+      new ApiError(400, "Test ID is required!")
+    );
+  }
+  try {
+    await Test.deleteMany({_id : {$in : test_Ids}})
+    return res.status(200).json(
+      new ApiResponse(200,"Class deactivated successfully!"))
+  } catch (error) {
+    return res.status(500).json(
+      new ApiError(500,"Class deactivated unsuccessfully", error))
+  }
+})
 export {
   loginController,
   userDelete,
@@ -455,4 +662,9 @@ export {
   markAttendence,
   timeTable,
   transferStudents,
+  markTest,
+  changeIncharge,
+  deleteClass,
+  reactivateClass,
+  deleteTest
 };

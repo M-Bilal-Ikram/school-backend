@@ -1,6 +1,5 @@
 import mongoose, { Schema } from "mongoose";
 import {AcademicSession} from "./academicSession.models.js"
-import { Student } from "./studetnt.models.js";
 
 const studentEnrollmentSchema = new Schema(
     {
@@ -17,8 +16,7 @@ const studentEnrollmentSchema = new Schema(
         },
         class: [
            { 
-            type : Schema.Types.ObjectId,
-            ref: "Grade",
+            type : Schema.Types.Mixed,
             required : true
             }
         ],
@@ -39,15 +37,13 @@ studentEnrollmentSchema.pre("save", async function(next) {
     next();
   });
 
-studentEnrollmentSchema.pre("save", async function(next){
-    await Student.create({studentId: this._id, currentClass : this.class, currentSession : this.startSession})
-    next()
-})
 
 studentEnrollmentSchema.statics.deleteStudent = async function(id) {
     const CurrentSession = await AcademicSession.findOne({ status: "Current" });
-    await this.findByIdAndUpdate(id, { $set: { endSession: CurrentSession } });
-    await Student.findOneAndDelete({studentId : id})
+    await this.updateMany(
+        { _id: { $in: id } },
+        { $set: { endSession: CurrentSession } }
+      );
 };
 
 export const StudentEnrollment =  mongoose.model("StudentEnrollment", studentEnrollmentSchema)
