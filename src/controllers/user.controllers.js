@@ -132,8 +132,7 @@ const userAdd = asyncHandler(async (req, res) => {
       await Staff.create({ name, role, email, password });
       
       return res.status(200).json(new ApiResponse(200, "Successfully Added!"));
-    } catch (error) {   
-      console.log("Error in student adding:",error)   
+    } catch (error) {      
       return res
         .status(500)
         .json(new ApiError(500, "Something Went wrong!", error));
