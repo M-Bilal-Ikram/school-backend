@@ -67,6 +67,7 @@ const getStudent = asyncHandler(async(req,res)=>{
                 );
             }
             studentData = await StudentEnrollment.find({endSession : {$exists : false},class: { $elemMatch: { $eq: new mongoose.Types.ObjectId(grade_id[0]._id) } }},"-startSession");
+            console.log("Student Data :",studentData)
         }
         else{
             studentData = await StudentEnrollment.find({
@@ -74,7 +75,6 @@ const getStudent = asyncHandler(async(req,res)=>{
                 class: { $elemMatch: { $eq: new mongoose.Types.ObjectId(classes) } }
               }, "-startSession");        
             }
-        
         return res.status(200).json(
             new ApiResponse(200,"Successfully Retrived!",studentData)
     )
