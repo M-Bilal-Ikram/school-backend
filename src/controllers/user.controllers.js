@@ -129,7 +129,7 @@ const userAdd = asyncHandler(async (req, res) => {
       if (!name || !role || !email || !password)
         return res.status(410).json(new ApiError(400, "Detail is Missing!"));
 
-      await Staff.create({ name, role, email, password, refreshToken : null });
+      await Staff.create({ name, role, email, password });
       
       return res.status(200).json(new ApiResponse(200, "Successfully Added!"));
     } catch (error) {   
