@@ -67,7 +67,6 @@ const getStudent = asyncHandler(async(req,res)=>{
                 );
             }
             studentData = await StudentEnrollment.find({endSession : {$exists : false},class: { $elemMatch: { $eq: new mongoose.Types.ObjectId(grade_id[0]._id) } }},"-startSession");
-            console.log("Student Data :",studentData)
         }
         else{
             studentData = await StudentEnrollment.find({

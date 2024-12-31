@@ -492,9 +492,11 @@ try {
       throw new Error("Destination class does not exist or is not active.");
     }
     
+    const toClassObjectId = new mongoose.Types.ObjectId(toClassId);
+
     await StudentEnrollment.updateMany(
-      { _id : {$in : studentsId} },
-      { $set: { class: toClassId } }
+      { _id: { $in: studentsId } },
+      { $set: { class: toClassObjectId } }
     );
     return res
       .status(200)
