@@ -71,13 +71,9 @@ const getStudent = asyncHandler(async(req,res)=>{
         else{
             studentData = await StudentEnrollment.find({
                 endSession: { $exists: false },
-                $expr: {
-                  $eq: [
-                    { $arrayElemAt: ["$class", 0] },
-                    classes
-                  ]
-                }
-              }, "-startSession");        }
+                class: { $elemMatch: { $eq: new mongoose.Types.ObjectId(classes) } }
+              }, "-startSession");        
+            }
         
         return res.status(200).json(
             new ApiResponse(200,"Successfully Retrived!",studentData)
