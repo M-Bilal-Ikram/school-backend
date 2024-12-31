@@ -66,7 +66,7 @@ const getStudent = asyncHandler(async(req,res)=>{
                   new ApiResponse(403, "You are not the incharge of any Class.")
                 );
             }
-            studentData = await StudentEnrollment.find({endSession : {$exists : false}, class : {$eq : grade_id[0]._id}},"-startSession");
+            studentData = await StudentEnrollment.find({endSession : {$exists : false},class: { $elemMatch: { $eq: new mongoose.Types.ObjectId(grade_id[0]._id) } }},"-startSession");
         }
         else{
             studentData = await StudentEnrollment.find({
