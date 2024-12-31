@@ -22,7 +22,8 @@ const staffSchema = new Schema ({
         required : true
     },
     refreshToken : {
-        type : String
+        type : String,
+        unique : true,
     },
     isActive: {
         type: Boolean,
